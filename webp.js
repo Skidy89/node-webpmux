@@ -1,22 +1,16 @@
-/*
-    node-webpmux - NodeJS module for interacting with WebP images
-    Copyright (C) 2023  ApeironTsuka
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-*/
-
 const { WebPReader, WebPWriter } = require('./parser.js')
 const IO = require('./io.js')
 const { Readable } = require('stream')
 const constants = { TYPE_EXTENDED: 2 }
+
+const readStream = (stream) => {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    stream.on('data', (chunk) => chunks.push(chunk))
+    stream.on('end', () => resolve(Buffer.concat(chunks)))
+    stream.on('error', reject)
+  })
+}
 
 class Image {
   constructor() { this.data = null; this.loaded = false; this.path = '' }
@@ -37,7 +31,8 @@ class Image {
     } else if (Buffer.isBuffer(d)) {
       reader.readBuffer(d)
     } else if (d instanceof Readable) {
-      reader.readStream(d)
+      d = await readStream(d)
+      reader.readBuffer(d)
     } else {
       throw new Error('Unsupported input type')
     }
